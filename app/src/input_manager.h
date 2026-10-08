@@ -73,4 +73,8 @@ void
 sc_input_manager_handle_event(struct sc_input_manager *im,
                               const SDL_Event *event);
 
+// Inject a HOME key press on the device (a no-op if control is disabled)
+bool
+sc_input_manager_press_home(struct sc_input_manager *im);
+
 #endif

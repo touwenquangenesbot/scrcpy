@@ -42,6 +42,7 @@ enum {
     OPT_NO_KEY_REPEAT,
     OPT_LEGACY_PASTE,
     OPT_VIDEO_ENCODER,
+    OPT_HOME_WHEN_INACTIVE,
     OPT_POWER_OFF_ON_CLOSE,
     OPT_V4L2_SINK,
     OPT_VIDEO_BUFFER,
@@ -430,6 +431,14 @@ static const struct sc_option options[] = {
         .shortopt = 'h',
         .longopt = "help",
         .text = "Print this help.",
+    },
+    {
+        .longopt_id = OPT_HOME_WHEN_INACTIVE,
+        .longopt = "home-when-inactive",
+        .text = "Go back to the device home screen when the scrcpy window "
+                "becomes inactive, i.e. when it loses focus or is minimized.\n"
+                "This requires control to be enabled.\n"
+                "It has no effect while the device screen is off.",
     },
     {
         .longopt_id = OPT_HWDEC,
@@ -2782,6 +2791,9 @@ parse_args_with_getopt(struct scrcpy_cli_args *args, int argc, char *argv[],
             case OPT_LEGACY_PASTE:
                 opts->legacy_paste = true;
                 break;
+            case OPT_HOME_WHEN_INACTIVE:
+                opts->home_when_inactive = true;
+                break;
             case OPT_POWER_OFF_ON_CLOSE:
                 opts->power_off_on_close = true;
                 break;
@@ -3516,6 +3528,11 @@ parse_args_with_getopt(struct scrcpy_cli_args *args, int argc, char *argv[],
             LOGE("Cannot request power off on close if control is disabled");
             return false;
         }
+        if (opts->home_when_inactive) {
+            LOGE("Cannot go back to the home screen when inactive if control "
+                 "is disabled");
+            return false;
+        }
         if (opts->start_app) {
             LOGE("Cannot start an Android app if control is disabled");
             return false;
@@ -3542,6 +3559,11 @@ parse_args_with_getopt(struct scrcpy_cli_args *args, int argc, char *argv[],
         opts->start_fps_counter = false;
     }
 
+    if (opts->home_when_inactive && !opts->window) {
+        LOGW("--home-when-inactive has no effect without a window");
+        opts->home_when_inactive = false;
+    }
+
     if (otg) {
         // OTG mode is compatible with only very few options.
         // Only report obvious errors.
@@ -3563,6 +3585,11 @@ parse_args_with_getopt(struct scrcpy_cli_args *args, int argc, char *argv[],
         }
         if (opts->power_off_on_close) {
             LOGE("OTG mode: could not request power off on close");
+            return false;
+        }
+        if (opts->home_when_inactive) {
+            LOGE("OTG mode: could not go back to the home screen "
+                 "when inactive");
             return false;
         }
         if (opts->display_id) {

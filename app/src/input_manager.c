@@ -106,6 +106,36 @@ action_menu(struct sc_input_manager *im, enum sc_action action) {
     send_keycode(im, AKEYCODE_MENU, action, "MENU");
 }
 
+// Inject a HOME key press on the device
+//
+// Unlike the keyboard and mouse shortcuts, this is not triggered by an SDL
+// event, so it must not require a key processor: injecting a keycode to the
+// device is independent from the client keyboard input mode.
+bool
+sc_input_manager_press_home(struct sc_input_manager *im) {
+    if (!im->controller || im->camera) {
+        // No control channel (e.g. --no-control), or camera mode
+        return false;
+    }
+
+    struct sc_control_msg msg = {
+        .type = SC_CONTROL_MSG_TYPE_INJECT_KEYCODE,
+        .inject_keycode = {
+            .action = AKEY_EVENT_ACTION_DOWN,
+            .keycode = AKEYCODE_HOME,
+            .repeat = 0,
+            .metastate = 0,
+        },
+    };
+
+    if (!sc_controller_push_msg(im->controller, &msg)) {
+        return false;
+    }
+
+    msg.inject_keycode.action = AKEY_EVENT_ACTION_UP;
+    return sc_controller_push_msg(im->controller, &msg);
+}
+
 // turn the screen on if it was off, press BACK otherwise
 // If the screen is off, it is turned on only on ACTION_DOWN
 static void

@@ -833,6 +833,7 @@ aoa_complete:
             .background_color = options->background_color,
             .window_aspect_ratio_lock = options->window_aspect_ratio_lock,
             .window_borderless = options->window_borderless,
+            .home_when_inactive = options->home_when_inactive,
             .render_fit = options->render_fit,
             .orientation = options->display_orientation,
             .mipmaps = options->mipmaps,

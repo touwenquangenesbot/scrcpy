@@ -72,6 +72,19 @@ To keep the window always on top:
 scrcpy --always-on-top
 ```
 
+## Home when inactive
+
+To go back to the Android home screen when the window loses focus or is
+minimized:
+
+```bash
+scrcpy --home-when-inactive
+```
+
+This requires control (it has no effect with `--no-control`).
+
+Note that the HOME key is ignored by Android while the device screen is off.
+
 ## Fullscreen
 
 The app may be started directly in fullscreen:

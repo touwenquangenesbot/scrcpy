@@ -90,6 +90,15 @@ struct sc_screen {
     struct SDL_FRect rect;
     bool window_shown;
 
+    // Go back to the device home screen when the window becomes inactive
+    bool home_when_inactive;
+    // Whether the window was focused at least once: this avoids triggering at
+    // startup on window managers which do not focus a new window
+    bool window_was_focused;
+    // Whether the action was already triggered for the current inactive state
+    // (e.g. minimizing produces both a focus-lost and a minimized event)
+    bool home_fired;
+
     // only accessed from the thread calling sc_frame_sink_ops functions
     struct sc_stream_session current_session;
 
@@ -141,6 +150,7 @@ struct sc_screen_params {
 
     bool window_aspect_ratio_lock;
     bool window_borderless;
+    bool home_when_inactive;
 
     enum sc_render_fit render_fit;
     enum sc_orientation orientation;

@@ -521,6 +521,9 @@ sc_screen_init(struct sc_screen *screen,
 
     screen->resize_pending = false;
     screen->window_shown = false;
+    screen->home_when_inactive = params->home_when_inactive;
+    screen->window_was_focused = false;
+    screen->home_fired = false;
     screen->paused = false;
     screen->resume_frame = NULL;
     screen->orientation = SC_ORIENTATION_0;
@@ -1168,8 +1171,65 @@ sc_disconnect_on_timeout(struct sc_disconnect *d, void *userdata) {
     (void) ok; // ignore failure
 }
 
+// Trigger the "go back to home" action when the window becomes inactive
+//
+// This is called for every event, but only window activity events are handled.
+// It must not prevent the event from being processed by the rest of
+// sc_screen_handle_event(): in particular, SDL_EVENT_WINDOW_FOCUS_LOST must
+// still reach the mouse capture handler to release the pointer.
+static void
+sc_screen_handle_window_activity(struct sc_screen *screen,
+                                 const SDL_Event *event) {
+    if (!screen->home_when_inactive) {
+        return;
+    }
+
+    switch (event->type) {
+        case SDL_EVENT_WINDOW_FOCUS_GAINED:
+            screen->window_was_focused = true;
+            screen->home_fired = false;
+            return;
+        case SDL_EVENT_WINDOW_RESTORED:
+        case SDL_EVENT_WINDOW_SHOWN:
+            // The window is active (again)
+            screen->home_fired = false;
+            return;
+        case SDL_EVENT_WINDOW_MINIMIZED:
+        case SDL_EVENT_WINDOW_HIDDEN:
+        case SDL_EVENT_WINDOW_OCCLUDED:
+            // The window is not visible anymore: this is an explicit action,
+            // so it triggers even if the window was never focused
+            break;
+        case SDL_EVENT_WINDOW_FOCUS_LOST:
+            if (!screen->window_was_focused) {
+                // Do not trigger for a window which was never focused (some
+                // window managers do not focus a new window)
+                return;
+            }
+            break;
+        default:
+            return;
+    }
+
+    // The window just became inactive
+    if (screen->home_fired || !screen->window_shown || screen->disconnected) {
+        // Already triggered for this inactive state, or the window is not
+        // shown yet, or the device is already disconnected
+        return;
+    }
+    screen->home_fired = true;
+
+    if (sc_input_manager_press_home(&screen->im)) {
+        LOGD("Window inactive: injected HOME");
+    } else {
+        LOGW("Could not request 'inject HOME'");
+    }
+}
+
 void
 sc_screen_handle_event(struct sc_screen *screen, const SDL_Event *event) {
+    sc_screen_handle_window_activity(screen, event);
+
     switch (event->type) {
         case SC_EVENT_OPEN_WINDOW: {
             struct sc_size *size = event->user.data1;

@@ -49,6 +49,7 @@ static void test_options(void) {
         "--video-bit-rate", "5M",
         "--crop", "100:200:300:400",
         "--fullscreen",
+        "--home-when-inactive",
         "--max-fps", "30",
         "--max-size", "1024",
         // "--no-control" is not compatible with "--turn-screen-off"
@@ -77,6 +78,7 @@ static void test_options(void) {
     assert(opts->video_bit_rate == 5000000);
     assert(!strcmp(opts->crop, "100:200:300:400"));
     assert(opts->fullscreen);
+    assert(opts->home_when_inactive);
     assert(!strcmp(opts->max_fps, "30"));
     assert(opts->max_size == 1024);
     assert(opts->port_range.first == 1234);
@@ -121,6 +123,20 @@ static void test_options2(void) {
     assert(opts->record_format == SC_RECORD_FORMAT_MP4);
 }
 
+static void test_home_when_inactive_requires_control(void) {
+    struct scrcpy_cli_args args = {
+        .opts = scrcpy_options_default,
+        .help = false,
+        .version = false,
+    };
+
+    // --home-when-inactive injects a control message
+    char *argv[] = {"scrcpy", "--no-control", "--home-when-inactive"};
+
+    bool ok = scrcpy_parse_args(&args, ARRAY_LEN(argv), argv);
+    assert(!ok);
+}
+
 static void test_parse_shortcut_mods(void) {
     uint8_t mods;
     bool ok;
@@ -157,6 +173,7 @@ int main(int argc, char *argv[]) {
     test_flag_help();
     test_options();
     test_options2();
+    test_home_when_inactive_requires_control();
     test_parse_shortcut_mods();
     return 0;
 }
